@@ -1,22 +1,35 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useEffect } from 'react';
 import { Preloader } from '../ui/preloader';
 import { OrderInfoUI } from '../ui/order-info';
 import { TIngredient } from '@utils-types';
 
-import { useSelector } from '../../services/store';
+import { useSelector, useDispatch } from '../../services/store';
 import { ingredientsSelector } from '../../services/ingredients/ingredientsSlice';
 import { orderListSelector } from '../../services/orderListSlice/orderListSlice';
 import { useParams } from 'react-router-dom';
 import { feedOrdersSelector } from '../../services/feed/feedSlice';
+import styles from '../ui/order-info/order-info.module.css';
+import { orderSelector } from '../../services/order/orderSlice';
+import { getOrderByNumber } from '../../services/order/orderSlice';
 export const OrderInfo: FC = () => {
   /** TODO: взять переменные orderData и ingredients из стора */
+  const dispatch = useDispatch();
   const feedOrders = useSelector(feedOrdersSelector);
   const profileOrders = useSelector(orderListSelector);
   const { number } = useParams<{ number: string }>();
-
+  const orderId = useSelector(orderSelector);
   const orderData =
     profileOrders.find((order) => order.number === Number(number)) ||
-    feedOrders.find((order) => order.number === Number(number));
+    feedOrders.find((order) => order.number === Number(number)) ||
+    (orderId?.number === Number(number) ? orderId : null);
+
+  useEffect(() => {
+    if (!number || orderData) {
+      return;
+    }
+
+    dispatch(getOrderByNumber(Number(number)));
+  }, [dispatch, number, orderData]);
 
   const ingredients: TIngredient[] = useSelector(ingredientsSelector);
 
@@ -66,5 +79,12 @@ export const OrderInfo: FC = () => {
     return <Preloader />;
   }
 
-  return <OrderInfoUI orderInfo={orderInfo} />;
+  return (
+    <>
+      <p className={`text text_type_digits-default ${styles.number}`}>
+        #{number}
+      </p>
+      <OrderInfoUI orderInfo={orderInfo} />
+    </>
+  );
 };
